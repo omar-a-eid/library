@@ -4,6 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 import { checkDatabaseConnection } from './config/db';
 import { errorHandler } from './middleware/errorHandler';
+import authorsRoutes from './modules/authors/authors.routes';
 
 dotenv.config();
 
@@ -25,6 +26,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
   });
 });
+
+app.use('/api/v1/authors', authorsRoutes);
 
 // 404 handler
 app.use((req, res) => {
