@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
-
 export class AppError extends Error {
   constructor(
     public statusCode: number,
@@ -11,7 +10,6 @@ export class AppError extends Error {
     Object.setPrototypeOf(this, AppError.prototype);
   }
 }
-
 export const errorHandler = (
   err: Error,
   req: Request,
@@ -25,16 +23,17 @@ export const errorHandler = (
     });
     return;
   }
-
   if (err instanceof ZodError) {
     res.status(400).json({
       status: 'error',
       message: 'Validation error',
-      errors: err.issues,
+      errors: err.issues.map(issue => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      })),
     });
     return;
   }
-
   console.error('ERROR:', err);
   res.status(500).json({
     status: 'error',
