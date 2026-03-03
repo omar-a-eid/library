@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
 import { checkDatabaseConnection } from './config/db';
+import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
 
@@ -32,6 +33,9 @@ app.use((req, res) => {
     message: `Route ${req.originalUrl} not found`,
   });
 });
+
+// Global error handler
+app.use(errorHandler);
 
 // Start server
 const startServer = async () => {
