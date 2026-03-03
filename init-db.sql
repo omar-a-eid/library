@@ -17,16 +17,6 @@ CREATE TABLE authors (
 );
 
 -- ============================================================
--- CATEGORIES
--- ============================================================
-
-CREATE TABLE categories (
-    id         SERIAL PRIMARY KEY,
-    name       VARCHAR(100) NOT NULL UNIQUE,
-    created_at TIMESTAMP    NOT NULL DEFAULT NOW()
-);
-
--- ============================================================
 -- SHELF LOCATIONS
 -- ============================================================
 
@@ -65,7 +55,6 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE TABLE books (
     id                SERIAL PRIMARY KEY,
     title             VARCHAR(255) NOT NULL,
-    author_id         INT          NOT NULL REFERENCES authors(id)         ON DELETE RESTRICT,
     shelf_location_id INT                   REFERENCES shelf_locations(id) ON DELETE SET NULL,
     isbn              VARCHAR(20)  NOT NULL UNIQUE,
     available_qty     SMALLINT     NOT NULL DEFAULT 1 CHECK (available_qty >= 0),
@@ -73,20 +62,22 @@ CREATE TABLE books (
     updated_at        TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_books_title     ON books USING gin(to_tsvector('english', title));
-CREATE INDEX idx_books_author_id ON books(author_id);
+CREATE INDEX idx_books_title              ON books USING gin(to_tsvector('english', title));
+CREATE INDEX idx_books_shelf_location_id  ON books(shelf_location_id);
 
 -- ============================================================
--- BOOK CATEGORIES (Junction Table)
+-- BOOK AUTHORS (Many-to-Many Junction Table)
 -- ============================================================
 
-CREATE TABLE book_categories (
-    book_id     INT NOT NULL REFERENCES books(id)      ON DELETE CASCADE,
-    category_id INT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-    PRIMARY KEY (book_id, category_id)
+CREATE TABLE book_authors (
+    book_id    INT      NOT NULL REFERENCES books(id)   ON DELETE CASCADE,
+    author_id  INT      NOT NULL REFERENCES authors(id) ON DELETE RESTRICT,
+    position   SMALLINT NOT NULL DEFAULT 1 CHECK (position > 0),
+    PRIMARY KEY (book_id, author_id)
 );
 
-CREATE INDEX idx_book_categories_category_id ON book_categories(category_id);
+CREATE INDEX idx_book_authors_book   ON book_authors(book_id);
+CREATE INDEX idx_book_authors_author ON book_authors(author_id);
 
 -- ============================================================
 -- BORROWING TRANSACTIONS
