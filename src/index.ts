@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { checkDatabaseConnection } from './config/db';
 import { errorHandler } from './middleware/errorHandler';
 import authorsRoutes from './modules/authors/authors.routes';
+import usersRoutes from './modules/users/users.routes';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/v1/authors', authorsRoutes);
+app.use('/api/v1/users', usersRoutes);
 
 // 404 handler
 app.use((req, res) => {
