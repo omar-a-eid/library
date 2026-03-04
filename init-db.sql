@@ -16,6 +16,8 @@ CREATE TABLE authors (
     updated_at TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX idx_authors_name ON authors(name);
+
 -- ============================================================
 -- SHELF LOCATIONS
 -- ============================================================
@@ -72,7 +74,6 @@ CREATE INDEX idx_books_shelf_location_id  ON books(shelf_location_id);
 CREATE TABLE book_authors (
     book_id    INT      NOT NULL REFERENCES books(id)   ON DELETE CASCADE,
     author_id  INT      NOT NULL REFERENCES authors(id) ON DELETE RESTRICT,
-    position   SMALLINT NOT NULL DEFAULT 1 CHECK (position > 0),
     PRIMARY KEY (book_id, author_id)
 );
 
@@ -98,5 +99,8 @@ CREATE TABLE borrowing_transactions (
 
 CREATE INDEX idx_bt_borrower_id ON borrowing_transactions(borrower_id);
 CREATE INDEX idx_bt_book_id     ON borrowing_transactions(book_id);
+CREATE INDEX idx_bt_checkout_date ON borrowing_transactions(checkout_date);
 CREATE INDEX idx_bt_active      ON borrowing_transactions(due_date)
+    WHERE state != 'returned';
+CREATE INDEX idx_bt_borrower_active ON borrowing_transactions(borrower_id, state)
     WHERE state != 'returned';
