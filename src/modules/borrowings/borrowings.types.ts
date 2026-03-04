@@ -17,6 +17,7 @@ export interface BorrowingWithDetails extends BorrowingTransaction {
   borrower_email: string;
   book_title: string;
   book_isbn: string;
+  days_overdue?: number;
 }
 
 export interface PaginatedBorrowings {

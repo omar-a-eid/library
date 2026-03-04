@@ -1,5 +1,5 @@
-import { pool } from '../../config/db';
 import type { PoolClient } from 'pg';
+import { pool } from '../../config/db';
 import type { CheckoutBookInput } from './borrowings.schema';
 import type { BorrowingTransaction, BorrowingWithDetails, BorrowState } from './borrowings.types';
 
@@ -117,7 +117,7 @@ export class BorrowingsRepository {
     state?: BorrowState
   ): Promise<{ borrowings: BorrowingWithDetails[]; total: number }> {
     const offset = (page - 1) * limit;
-    
+
     const conditions: string[] = [];
     const filterParams: any[] = [];
     let paramCount = 1;
@@ -214,5 +214,46 @@ export class BorrowingsRepository {
       borrowings: borrowingsResult.rows,
       total: parseInt(countResult.rows[0]!.count, 10)
     };
+  }
+
+
+  async getBorrowingsByPeriod(startDate: Date, endDate: Date): Promise<BorrowingWithDetails[]> {
+    const result = await pool.query<BorrowingWithDetails>(
+      `SELECT 
+         bt.*,
+         u.name as borrower_name,
+         u.email as borrower_email,
+         b.title as book_title,
+         b.isbn as book_isbn
+       FROM borrowing_transactions bt
+       JOIN users u ON bt.borrower_id = u.id
+       JOIN books b ON bt.book_id = b.id
+       WHERE bt.checkout_date >= $1 AND bt.checkout_date <= $2
+       ORDER BY bt.checkout_date DESC`,
+      [startDate, endDate]
+    );
+
+    return result.rows;
+  }
+
+  async getOverdueBorrowingsByPeriod(startDate: Date, endDate: Date): Promise<BorrowingWithDetails[]> {
+    const result = await pool.query<BorrowingWithDetails>(
+      `SELECT 
+         bt.*,
+         u.name as borrower_name,
+         u.email as borrower_email,
+         b.title as book_title,
+         b.isbn as book_isbn,
+         CURRENT_DATE - bt.due_date AS days_overdue
+       FROM borrowing_transactions bt
+       JOIN users u ON bt.borrower_id = u.id
+       JOIN books b ON bt.book_id = b.id
+       WHERE bt.state = 'overdue'
+       AND bt.checkout_date >= $1 AND bt.checkout_date <= $2
+       ORDER BY bt.due_date ASC`,
+      [startDate, endDate]
+    );
+
+    return result.rows;
   }
 }

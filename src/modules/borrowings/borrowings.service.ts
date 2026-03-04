@@ -118,4 +118,55 @@ export class BorrowingsService {
 
     return this.listBorrowings(page, limit, undefined, 'overdue');
   }
+
+  async exportBorrowingsByPeriod(startDate: Date, endDate: Date, format: 'csv' | 'xlsx'): Promise<{ buffer: Buffer | string; contentType: string; filename: string }> {
+    const { ExportContext } = await import('../../utils/export/ExportContext');
+
+    await this.repository.updateOverdueBooks();
+    const borrowings = await this.repository.getBorrowingsByPeriod(startDate, endDate);
+
+    const exportData = borrowings.map(b => ({
+      id: b.id,
+      borrower_name: b.borrower_name,
+      borrower_email: b.borrower_email,
+      book_title: b.book_title,
+      book_isbn: b.book_isbn,
+      state: b.state,
+      checkout_date: b.checkout_date,
+      due_date: b.due_date,
+      return_date: b.return_date || 'Not returned'
+    }));
+
+    const exporter = new ExportContext(format);
+    const { buffer, contentType, extension } = await exporter.exportData(exportData);
+
+    const filename = `borrowings_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}.${extension}`;
+
+    return { buffer, contentType, filename };
+  }
+
+  async exportOverdueBorrowingsByPeriod(startDate: Date, endDate: Date, format: 'csv' | 'xlsx'): Promise<{ buffer: Buffer | string; contentType: string; filename: string }> {
+    const { ExportContext } = await import('../../utils/export/ExportContext');
+
+    await this.repository.updateOverdueBooks();
+    const borrowings = await this.repository.getOverdueBorrowingsByPeriod(startDate, endDate);
+
+    const exportData = borrowings.map(b => ({
+      id: b.id,
+      borrower_name: b.borrower_name,
+      borrower_email: b.borrower_email,
+      book_title: b.book_title,
+      book_isbn: b.book_isbn,
+      checkout_date: b.checkout_date,
+      due_date: b.due_date,
+      days_overdue: Math.floor((new Date().getTime() - new Date(b.due_date).getTime()) / (1000 * 60 * 60 * 24))
+    }));
+
+    const exporter = new ExportContext(format);
+    const { buffer, contentType, extension } = await exporter.exportData(exportData);
+
+    const filename = `overdue_borrowings_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}.${extension}`;
+
+    return { buffer, contentType, filename };
+  }
 }

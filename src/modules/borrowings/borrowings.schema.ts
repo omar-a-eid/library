@@ -43,4 +43,12 @@ export const myBooksSchema = z.object({
   }),
 });
 
+export const exportBorrowingsSchema = z.object({
+  query: z.object({
+    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    format: z.enum(['csv', 'xlsx']).default('csv'),
+  }),
+});
+
 export type CheckoutBookInput = z.infer<typeof checkoutBookSchema>['body'];

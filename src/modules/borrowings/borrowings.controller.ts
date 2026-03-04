@@ -92,4 +92,45 @@ export class BorrowingsController {
     }
   };
 
+  exportBorrowings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { start_date, end_date, format } = req.query;
+      const startDate = new Date(start_date as string);
+      const endDate = new Date(end_date as string);
+      const exportFormat = (format as 'csv' | 'xlsx') || 'csv';
+
+      const { buffer, contentType, filename } = await this.service.exportBorrowingsByPeriod(
+        startDate,
+        endDate,
+        exportFormat
+      );
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  exportOverdueBorrowings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { start_date, end_date, format } = req.query;
+      const startDate = new Date(start_date as string);
+      const endDate = new Date(end_date as string);
+      const exportFormat = (format as 'csv' | 'xlsx') || 'csv';
+
+      const { buffer, contentType, filename } = await this.service.exportOverdueBorrowingsByPeriod(
+        startDate,
+        endDate,
+        exportFormat
+      );
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
