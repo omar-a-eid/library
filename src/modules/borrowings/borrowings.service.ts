@@ -1,0 +1,121 @@
+import { AppError } from '../../middleware/errorHandler';
+import { BooksService } from '../books/books.service';
+import { UsersService } from '../users/users.service';
+import { BorrowingsRepository } from './borrowings.repository';
+import type { CheckoutBookInput } from './borrowings.schema';
+import type { BorrowingWithDetails, BorrowState, PaginatedBorrowings } from './borrowings.types';
+
+export class BorrowingsService {
+  private repository: BorrowingsRepository;
+  private usersService: UsersService;
+  private booksService: BooksService;
+
+  constructor() {
+    this.repository = new BorrowingsRepository();
+    this.usersService = new UsersService();
+    this.booksService = new BooksService();
+  }
+
+  async checkoutBook(data: CheckoutBookInput): Promise<BorrowingWithDetails> {
+    await this.usersService.getUserById(data.borrower_id);
+
+    const book = await this.booksService.getBookById(data.book_id);
+
+    if (book.available_qty <= 0) {
+      throw new AppError(400, 'Book is not available for checkout');
+    }
+
+    const activeBorrowing = await this.repository.getActiveBorrowingByBookId(data.book_id);
+    if (activeBorrowing) {
+      throw new AppError(400, 'Book is already checked out');
+    }
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + data.due_days);
+
+    const borrowing = await this.repository.checkoutBookWithTransaction(data, dueDate);
+
+    const result = await this.repository.findById(borrowing.id);
+    if (!result) throw new AppError(500, 'Failed to create borrowing');
+
+    return result;
+  }
+
+  async returnBook(id: number): Promise<BorrowingWithDetails> {
+    const borrowing = await this.repository.findById(id);
+    if (!borrowing) {
+      throw new AppError(404, 'Borrowing transaction not found');
+    }
+
+    if (borrowing.state === 'returned') {
+      throw new AppError(400, 'Book has already been returned');
+    }
+
+    const returnDate = new Date();
+    const returned = await this.repository.returnBookWithTransaction(id, returnDate, borrowing.book_id);
+    if (!returned) {
+      throw new AppError(404, 'Failed to return book');
+    }
+
+    const result = await this.repository.findById(id);
+    if (!result) throw new AppError(500, 'Failed to retrieve borrowing');
+
+    return result;
+  }
+
+  async getBorrowingById(id: number): Promise<BorrowingWithDetails> {
+    const borrowing = await this.repository.findById(id);
+    if (!borrowing) {
+      throw new AppError(404, 'Borrowing transaction not found');
+    }
+    return borrowing;
+  }
+
+  async listBorrowings(
+    page: number,
+    limit: number,
+    borrowerId?: number,
+    state?: BorrowState
+  ): Promise<PaginatedBorrowings> {
+    // Update overdue books before listing
+    await this.repository.updateOverdueBooks();
+
+    const { borrowings, total } = await this.repository.list(page, limit, borrowerId, state);
+
+    return {
+      data: borrowings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  async getMyCurrentBooks(borrowerId: number, page: number, limit: number): Promise<PaginatedBorrowings> {
+    await this.usersService.getUserById(borrowerId);
+
+    // Update overdue books before listing
+    await this.repository.updateOverdueBooks();
+
+    const { borrowings, total } = await this.repository.getMyCurrentBooks(borrowerId, page, limit);
+
+    return {
+      data: borrowings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  async getOverdueBooks(page: number, limit: number): Promise<PaginatedBorrowings> {
+    // Update overdue books before listing
+    await this.repository.updateOverdueBooks();
+
+    return this.listBorrowings(page, limit, undefined, 'overdue');
+  }
+}
