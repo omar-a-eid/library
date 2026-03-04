@@ -1,6 +1,7 @@
+import type { PoolClient } from 'pg';
 import { pool } from '../../config/db';
-import type { ShelfLocation } from './shelf-locations.types';
 import type { ShelfLocationInput } from './shelf-locations.schema';
+import type { ShelfLocation } from './shelf-locations.types';
 
 export class ShelfLocationsRepository {
   async create(data: ShelfLocationInput): Promise<ShelfLocation> {
@@ -48,5 +49,25 @@ export class ShelfLocationsRepository {
     }
 
     return this.create(data);
+  }
+
+  async findOrCreateWithClient(client: PoolClient, data: ShelfLocationInput): Promise<ShelfLocation> {
+    const existing = await client.query<ShelfLocation>(
+      `SELECT * FROM shelf_locations 
+       WHERE branch_name = $1 AND floor_number = $2 AND section_name = $3 AND shelf_code = $4`,
+      [data.branch_name, data.floor_number, data.section_name, data.shelf_code]
+    );
+
+    if (existing.rows[0]) {
+      return existing.rows[0];
+    }
+
+    const result = await client.query<ShelfLocation>(
+      `INSERT INTO shelf_locations (branch_name, floor_number, section_name, shelf_code)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [data.branch_name, data.floor_number, data.section_name, data.shelf_code]
+    );
+    return result.rows[0]!;
   }
 }
