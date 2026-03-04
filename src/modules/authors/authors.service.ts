@@ -53,4 +53,8 @@ export class AuthorsService {
       }
     };
   }
+
+  async findByIds(ids: number[]): Promise<Author[]> {
+    return this.repository.findByIds(ids);
+  }
 }

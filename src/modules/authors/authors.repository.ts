@@ -69,4 +69,12 @@ export class AuthorsRepository {
     );
     return parseInt(result.rows[0]!.count, 10) > 0;
   }
+
+  async findByIds(ids: number[]): Promise<Author[]> {
+    const result = await pool.query<Author>(
+      `SELECT * FROM authors WHERE id = ANY($1)`,
+      [ids]
+    );
+    return result.rows;
+  }
 }
