@@ -46,8 +46,11 @@ export class AuthorsController {
 
   deleteAuthor = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await this.service.deleteAuthor(Number(req.params.id));
-      res.status(204).send();
+      const author = await this.service.deleteAuthor(Number(req.params.id));
+      res.json({
+        status: 'success',
+        data: author
+      });
     } catch (error) {
       next(error);
     }

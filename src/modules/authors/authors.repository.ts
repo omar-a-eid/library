@@ -37,17 +37,17 @@ export class AuthorsRepository {
     return result.rows[0] || null;
   }
 
-  async delete(id: number): Promise<boolean> {
+  async delete(id: number): Promise<Author | null> {
     const result = await pool.query<Author>(
       'DELETE FROM authors WHERE id = $1 RETURNING *',
       [id]
     );
-    return result.rowCount !== null && result.rowCount > 0;
+    return result.rows[0] ?? null;
   }
 
   async list(page: number, limit: number): Promise<{ authors: Author[]; total: number }> {
     const offset = (page - 1) * limit;
-    
+
     const [authorsResult, countResult] = await Promise.all([
       pool.query<Author>(
         'SELECT * FROM authors ORDER BY name ASC LIMIT $1 OFFSET $2',
@@ -64,7 +64,7 @@ export class AuthorsRepository {
 
   async checkHasBooks(id: number): Promise<boolean> {
     const result = await pool.query<{ count: string }>(
-      'SELECT COUNT(*) FROM books WHERE author_id = $1',
+      'SELECT COUNT(*) FROM book_authors WHERE author_id = $1',
       [id]
     );
     return parseInt(result.rows[0]!.count, 10) > 0;

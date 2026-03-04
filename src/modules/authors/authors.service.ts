@@ -29,7 +29,7 @@ export class AuthorsService {
     return updatedAuthor;
   }
 
-  async deleteAuthor(id: number): Promise<void> {
+  async deleteAuthor(id: number): Promise<Author> {
     const author = await this.repository.findById(id);
     if (!author) throw new AppError(404, 'Author not found');
 
@@ -37,6 +37,7 @@ export class AuthorsService {
     if (hasBooks) throw new AppError(400, 'Cannot delete author with associated books');
 
     await this.repository.delete(id);
+    return author;
   }
 
   async listAuthors(page: number, limit: number): Promise<PaginatedAuthors> {
