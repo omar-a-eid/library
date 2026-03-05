@@ -370,7 +370,8 @@ Content-Type: application/json
 
 {
   "borrower_id": 1,
-  "book_id": 5
+  "book_id": 5,
+  "due_days": 14
 }
 
 Response: 201 Created
