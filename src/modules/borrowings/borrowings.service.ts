@@ -30,8 +30,9 @@ export class BorrowingsService {
       throw new AppError(400, 'Book is already checked out');
     }
 
+    const dueDays = data.due_days ?? 14;
     const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + data.due_days);
+    dueDate.setDate(dueDate.getDate() + dueDays);
 
     const borrowing = await this.repository.checkoutBookWithTransaction(data, dueDate);
 

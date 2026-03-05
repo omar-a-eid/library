@@ -23,6 +23,7 @@ export const errorHandler = (
     });
     return;
   }
+
   if (err instanceof ZodError) {
     res.status(400).json({
       status: 'error',
@@ -34,6 +35,16 @@ export const errorHandler = (
     });
     return;
   }
+
+  // Handle PostgreSQL foreign key constraint violations
+  if ((err as any).code === '23503') {
+    res.status(400).json({
+      status: 'error',
+      message: 'Cannot delete this record because it is referenced by other records.',
+    });
+    return;
+  }
+
   console.error('ERROR:', err);
   res.status(500).json({
     status: 'error',
